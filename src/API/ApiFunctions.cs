@@ -1,4 +1,4 @@
-using System;
+using Azure.Messaging.ServiceBus;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +10,12 @@ using Newtonsoft.Json;
 
 namespace API
 {
-    public static class Function1
+    public class ApiFunctions
     {
-        [FunctionName("Function1")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
+        [FunctionName("PlaceOrder")]
+        public async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
+            [ServiceBus("%OrderTopic%", Connection = "ServiceBusConnectionString")] IAsyncCollector<ServiceBusMessage> messages,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
@@ -28,6 +29,9 @@ namespace API
             string responseMessage = string.IsNullOrEmpty(name)
                 ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
                 : $"Hello, {name}. This HTTP triggered function executed successfully.";
+
+            var message = new ServiceBusMessage("The message body");
+            await messages.AddAsync(message);
 
             return new OkObjectResult(responseMessage);
         }

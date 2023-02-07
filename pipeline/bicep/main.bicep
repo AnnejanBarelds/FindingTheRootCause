@@ -34,8 +34,6 @@ module functionPlan 'Web/serverFarm.bicep' = {
     name: 'functionAsp'
     location: location
     logAnalyticsWorkspaceResourceId: law.outputs.id
-    kind: 'linux'
-    reserved: true
   }
 }
 
@@ -58,9 +56,10 @@ module appApi 'Web/sitesFunctionApp.bicep' = {
     appServicePlanResourceId: functionPlan.outputs.id
     logAnalyticsWorkspaceResourceId: law.outputs.id
     name: 'api-rootcause'
-    kind: 'functionapp,linux'
+    kind: 'functionapp'
     settings: {
-      ServiceBusConnection__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+      ServiceBusConnectionString__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+      OrderTopic: orderTopic.outputs.name
     }
   }
 }
@@ -73,9 +72,11 @@ module orderProcessor 'Web/sitesFunctionApp.bicep' = {
     appServicePlanResourceId: functionPlan.outputs.id
     logAnalyticsWorkspaceResourceId: law.outputs.id
     name: 'orderProcessor-rootcause'
-    kind: 'functionapp,linux'
+    kind: 'functionapp'
     settings: {
-      ServiceBusConnection__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+      ServiceBusConnectionString__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+      OrderTopic: orderTopic.outputs.name
+      OrderProcessingSubscription: orderProcessingSub.outputs.name
       CosmosDbConnection__accountEndpoint: cosmosDb.outputs.cosmosDbEndpoint
       CosmosDbConnection__credential: 'managedidentity'
     }
@@ -90,9 +91,11 @@ module customerLoyaltyProcessor 'Web/sitesFunctionApp.bicep' = {
     appServicePlanResourceId: functionPlan.outputs.id
     logAnalyticsWorkspaceResourceId: law.outputs.id
     name: 'customerLoyaltyProcessor-rootcause'
-    kind: 'functionapp,linux'
+    kind: 'functionapp'
     settings: {
-      ServiceBusConnection__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+      ServiceBusConnectionString__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+      OrderTopic: orderTopic.outputs.name
+      CustomerLoyaltySubscription: customerLoyaltySub.outputs.name
     }
   }
 }
@@ -105,7 +108,7 @@ module orderFulfillmentProcessor 'Web/sitesFunctionApp.bicep' = {
     appServicePlanResourceId: functionPlan.outputs.id
     logAnalyticsWorkspaceResourceId: law.outputs.id
     name: 'orderFulfillmentProcessor-rootcause'
-    kind: 'functionapp,linux'
+    kind: 'functionapp'
     settings: {
       CosmosDbConnection__accountEndpoint: cosmosDb.outputs.cosmosDbEndpoint
       CosmosDbConnection__credential: 'managedidentity'
@@ -121,7 +124,7 @@ module inventoryApi 'Web/sitesFunctionApp.bicep' = {
     appServicePlanResourceId: functionPlan.outputs.id
     logAnalyticsWorkspaceResourceId: law.outputs.id
     name: 'inventoryApi-rootcause'
-    kind: 'functionapp,linux'
+    kind: 'functionapp'
     settings: {
       
     }

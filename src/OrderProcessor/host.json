@@ -1,11 +1,27 @@
 {
-    "version": "2.0",
-    "logging": {
-        "applicationInsights": {
-            "samplingSettings": {
-                "isEnabled": true,
-                "excludedTypes": "Request"
-            }
-        }
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      },
+      "LogLevel": {
+        "Default": "Information",
+        "Microsoft": "Warning",
+        "Microsoft.AspNetCore.Authentication": "Information",
+        "Microsoft.AspNetCore.Http.Connections": "Information",
+        "Microsoft.Hosting.Lifetime": "Information",
+        "Azure.Core": "Error"
+      }
+    },
+    "logLevel": {
+      "default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.AspNetCore.Authentication": "Information",
+      "Microsoft.AspNetCore.Http.Connections": "Information",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "Azure.Core": "Error"
     }
+  }
 }
