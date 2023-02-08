@@ -21,4 +21,6 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
   }
 }
 
-output name string = container.name
+output fullName string = container.name
+
+output name string = substring(container.name, lastIndexOf(container.name, '/') + 1)

@@ -15,7 +15,7 @@ var scopevar = union({
   database: json('null')
   container: json('null')
 }, scope)
-var scopeSuffix = (!empty(scopevar.database) && !empty(scopevar.container)) ? '/dbs/${substring(scopevar.database, lastIndexOf(scopevar.database, '/'))}/colls/${substring(scopevar.container, lastIndexOf(scopevar.container, '/'))}' : (!empty(scopevar.database) && empty(scopevar.container)) ? '/dbs/${substring(scopevar.database, lastIndexOf(scopevar.database, '/'))}' : ''
+var scopeSuffix = (!empty(scopevar.database) && !empty(scopevar.container)) ? '/dbs/${substring(scopevar.database, lastIndexOf(scopevar.database, '/') + 1)}/colls/${substring(scopevar.container, lastIndexOf(scopevar.container, '/') + 1)}' : (!empty(scopevar.database) && empty(scopevar.container)) ? '/dbs/${substring(scopevar.database, lastIndexOf(scopevar.database, '/') + 1)}' : ''
 
 resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2021-11-15-preview' existing = {
   name: cosmosDbName

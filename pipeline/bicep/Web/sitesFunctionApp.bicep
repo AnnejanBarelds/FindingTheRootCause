@@ -11,6 +11,10 @@ param settings object = {}
 @description('The value for the `WEBSITES_ENABLE_APP_SERVICE_STORAGE` setting. Defaults to `true`')
 param websitesEnableAppServiceStorage bool = true
 
+@allowed(['0', '1'])
+@description('The value for the `WEBSITE_RUN_FROM_PACKAGE` setting. Defaults to `true`')
+param websiteRunFromPackage string = '1'
+
 @description('The value for the `FUNCTIONS_EXTENSION_VERSION` setting. Defaults to `~4`')
 param functionsExtensionsVersion string = '~4'
 
@@ -25,6 +29,7 @@ var functionAppSettings = {
   FUNCTIONS_EXTENSION_VERSION: functionsExtensionsVersion
   FUNCTIONS_WORKER_RUNTIME: functionsWorkerRuntime
   WEBSITES_ENABLE_APP_SERVICE_STORAGE: websitesEnableAppServiceStorage
+  WEBSITE_RUN_FROM_PACKAGE: websiteRunFromPackage
 }
 
 var functionStorageSettings = {

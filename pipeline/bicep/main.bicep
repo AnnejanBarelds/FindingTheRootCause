@@ -60,6 +60,7 @@ module appApi 'Web/sitesFunctionApp.bicep' = {
     settings: {
       ServiceBusConnectionString__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
       OrderTopic: orderTopic.outputs.name
+      WEBSITE_RUN_FROM_PACKAGE: 1
     }
   }
 }
@@ -79,6 +80,8 @@ module orderProcessor 'Web/sitesFunctionApp.bicep' = {
       OrderProcessingSubscription: orderProcessingSub.outputs.name
       CosmosDbConnection__accountEndpoint: cosmosDb.outputs.cosmosDbEndpoint
       CosmosDbConnection__credential: 'managedidentity'
+      EventsDB: cosmosSqlDatabase.outputs.name
+      OrderEventsContainer: cosmosEventContainer.outputs.name
     }
   }
 }
@@ -112,6 +115,9 @@ module orderFulfillmentProcessor 'Web/sitesFunctionApp.bicep' = {
     settings: {
       CosmosDbConnection__accountEndpoint: cosmosDb.outputs.cosmosDbEndpoint
       CosmosDbConnection__credential: 'managedidentity'
+      EventsDB: cosmosSqlDatabase.outputs.name
+      OrderEventsContainer: cosmosEventContainer.outputs.name
+      LeaseContainer: cosmosLeaseContainer.outputs.name
     }
   }
 }
@@ -242,7 +248,7 @@ module cosmosEventContainer 'DocumentDB/databaseAccounts/sqlDatabases/containers
   scope: rg
   name: '${deployment().name}-cosmosEventContainer'
   params: {
-    cosmosSqlDatabaseName: cosmosSqlDatabase.outputs.name
+    cosmosSqlDatabaseName: cosmosSqlDatabase.outputs.fullName
     location: location
     containerName: 'OrderEvents'
     partitionKey: {
@@ -257,7 +263,7 @@ module cosmosLeaseContainer 'DocumentDB/databaseAccounts/sqlDatabases/containers
   scope: rg
   name: '${deployment().name}-cosmosLeaseContainer'
   params: {
-    cosmosSqlDatabaseName: cosmosSqlDatabase.outputs.name
+    cosmosSqlDatabaseName: cosmosSqlDatabase.outputs.fullName
     location: location
     containerName: 'Leases'
     partitionKey: {
@@ -289,10 +295,6 @@ module cosmosEventReadPermission 'DocumentDB/databaseAccounts/sqlRoleAssignments
     cosmosDbName: cosmosDb.outputs.name
     principalId: orderFulfillmentProcessor.outputs.principalId
     roleDefinitionId: CosmosDbBuiltInDataReaderRoleId
-    scope: {
-      database: cosmosSqlDatabase.outputs.name
-      container: cosmosEventContainer.outputs.name
-    }
   }
   dependsOn: [
    cosmosEventWritePermission 

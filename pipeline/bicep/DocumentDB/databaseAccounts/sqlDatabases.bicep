@@ -17,4 +17,6 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2021-10-15
   }
 }
 
-output name string = database.name
+output fullName string = database.name
+
+output name string = substring(database.name, lastIndexOf(database.name, '/') + 1)
