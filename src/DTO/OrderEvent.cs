@@ -6,13 +6,13 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace OrderFulfillmentProcessor
+namespace DTO
 {
     public class OrderEvent
     {
         public string id { get; set; }
 
-        public string Text { get; set; }
+        public IEnumerable<OrderItem> Items { get; set; }
 
         public Guid OrderId { get; set; }
 

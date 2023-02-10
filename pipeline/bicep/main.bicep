@@ -9,6 +9,8 @@ var AzureServiceBusDataSender = '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
 var CosmosDbBuiltInDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
 var CosmosDbBuiltInDataReaderRoleId = '00000000-0000-0000-0000-000000000001'
 
+var apiKey = loadTextContent('key.txt')
+
 resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: 'RootCause'
   location: location
@@ -60,8 +62,8 @@ module appApi 'Web/sitesFunctionApp.bicep' = {
     settings: {
       ServiceBusConnectionString__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
       OrderTopic: orderTopic.outputs.name
-      WEBSITE_RUN_FROM_PACKAGE: 1
     }
+    key: apiKey
   }
 }
 
@@ -82,6 +84,8 @@ module orderProcessor 'Web/sitesFunctionApp.bicep' = {
       CosmosDbConnection__credential: 'managedidentity'
       EventsDB: cosmosSqlDatabase.outputs.name
       OrderEventsContainer: cosmosEventContainer.outputs.name
+      InventoryApi__Endpoint: 'https://${inventoryApi.outputs.defaultHostName}/'
+      InventoryApi__ApiKey: apiKey
     }
   }
 }
@@ -131,6 +135,7 @@ module inventoryApi 'Web/sitesFunctionApp.bicep' = {
     logAnalyticsWorkspaceResourceId: law.outputs.id
     name: 'inventoryApi-rootcause'
     kind: 'functionapp'
+    key: apiKey
     settings: {
       
     }
@@ -172,6 +177,17 @@ module customerLoyaltySub 'ServiceBus/Topics/Subscriptions/subscription.bicep' =
   scope: resourceGroup('ServiceBus')
   params: {
     name: 'customerLoyaltySub-rootcause'
+    topicName: orderTopic.outputs.name
+    namespaceName: serviceBus.name
+    sbResourceGroup: 'ServiceBus'
+  }
+}
+
+module wireTap 'ServiceBus/Topics/Subscriptions/subscription.bicep' = {
+  name: '${deployment().name}-wireTap'
+  scope: resourceGroup('ServiceBus')
+  params: {
+    name: 'wireTap-rootcause'
     topicName: orderTopic.outputs.name
     namespaceName: serviceBus.name
     sbResourceGroup: 'ServiceBus'

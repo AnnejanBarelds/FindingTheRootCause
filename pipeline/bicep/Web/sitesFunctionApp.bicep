@@ -23,6 +23,8 @@ param functionsWorkerRuntime string = 'dotnet'
 
 param kind string = 'functionapp'
 
+param key string = ''
+
 var storageAccountName = uniqueString('${name}-storage')
 
 var functionAppSettings = {
@@ -35,6 +37,19 @@ var functionAppSettings = {
 var functionStorageSettings = {
   AzureWebJobsStorage__accountName: storageAccountName
 }
+
+var deploymentOverrides = {
+  WEBSITE_RUN_FROM_PACKAGE: '0'
+}
+
+var definitiveSettings = union(functionAppSettings, functionStorageSettings, settings)
+
+var deploymentSettings = union(definitiveSettings, deploymentOverrides)
+
+var deploymentSettingsArray = [for item in items(deploymentSettings): {
+  name: item.key
+  value: item.value
+}]
 
 var storageBlobDataOwner = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
 var storageQueueDataContributor = '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
@@ -49,6 +64,9 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   properties: {
     serverFarmId: appServicePlanResourceId
     httpsOnly: true
+    siteConfig: {
+      appSettings: deploymentSettingsArray // NOTE: This is required to flip the WEBSITE_RUN_FROM_PACKAGE switch; its default value will lead to a Bad Gateway with the key deploy. Not a fantastic solution, but good enough for a demo
+    }
   }
 }
 
@@ -70,6 +88,14 @@ resource diagnosticSetting 'Microsoft.Insights/diagnosticSettings@2021-05-01-pre
       }
     ]
   }
+}
+
+resource hostKey 'Microsoft.Web/sites/host/functionKeys@2018-11-01' = if(!empty(key)) {
+   name: '${functionApp.name}/default/key'
+   properties: {
+    name: 'key'
+    value: key
+   }
 }
 
 module appInsights '../Insights/applicationinsights.bicep' = {
@@ -115,8 +141,10 @@ module appSettings 'Sites/appsettings.bicep' = {
   params: {
     siteName: functionApp.name
     appInsightsName: appInsights.outputs.name
-    settings: union(union(functionAppSettings, functionStorageSettings), settings)
+    settings: definitiveSettings
   }
 }
 
 output principalId string = functionApp.identity.principalId
+
+output defaultHostName string = functionApp.properties.defaultHostName
