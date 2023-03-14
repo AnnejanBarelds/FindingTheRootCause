@@ -1,19 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using DTO;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OrderProcessor
 {
@@ -41,7 +39,44 @@ namespace OrderProcessor
 
             var order = message.Body.ToObjectFromJson<Order>();
 
-            var products = order.Items.SelectMany(item =>
+            ApplyPromotions(order);
+
+            try
+            {
+                await ReserveProducts(order);
+            }
+            catch
+            {
+                _logger.LogError("Error while processing message with Id {MessageId}", message.MessageId);
+                await messageActions.DeadLetterMessageAsync(message, "Error while reserving products");
+                throw;
+            }
+
+            var @event = GenerateEvent(order);
+
+            await asyncCollector.AddAsync(@event);
+
+            _logger.LogInformation("Processed order with Id {OrderId}", order.Id);
+            _logger.LogInformation("C# ServiceBus topic trigger function processed message with Id {MessageId}", message.MessageId);
+        }
+
+        private void ApplyPromotions(Order order)
+        {
+            if (order.Items.Any(item => item.Sku == "sku2"))
+            {
+                order.Items.Add(new OrderItem
+                {
+                    Sku = "sku2.1",
+                    ProductId = 999,
+                    Amount = 1
+                });
+                _logger.LogInformation("Promotional sku {Sku} added to order with Id {OrderId}", "sku2.1", order.Id);
+            }
+        }
+
+        private static string[] ExtractProductSkus(Order order)
+        {
+            return order.Items.SelectMany(item =>
             {
                 List<string> skus = new List<string>();
                 for (int i = 0; i < item.Amount; i++)
@@ -50,32 +85,34 @@ namespace OrderProcessor
                 }
                 return skus;
             }).ToArray();
+        }
+
+        private async Task ReserveProducts(Order order)
+        {
+            var products = ExtractProductSkus(order);
 
             var response = await _inventoryApi.ReserveProducts(products);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Error while processing message with Id {MessageId}", message.MessageId);
-
-                await messageActions.DeadLetterMessageAsync(message, "Error while reserving products");
                 throw new Exception("Oh noos!!!");
             }
+        }
 
+        private dynamic GenerateEvent(Order order)
+        {
             using var dependency = _telemetryClient.StartOperation<DependencyTelemetry>("Store event");
             var telemetry = dependency.Telemetry;
             telemetry.Type = "Azure DocumentDB";
             telemetry.Target = _configuration["CosmosDbConnection__accountEndpoint"];
 
-            await asyncCollector.AddAsync(new
+            return new
             {
                 // create a random ID
                 id = Guid.NewGuid().ToString(),
                 OrderItems = order.Items,
                 OrderId = order.Id,
                 DiagnosticId = Activity.Current?.Id
-            });
-
-            _logger.LogInformation("Processed order with Id: {OrderId}", order.Id);
-            _logger.LogInformation("C# ServiceBus topic trigger function processed message with Id {MessageId}", message.MessageId);
+            };
         }
     }
 }

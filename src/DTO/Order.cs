@@ -4,6 +4,6 @@
     {
         public Guid Id { get; set; }
 
-        public IEnumerable<OrderItem> Items { get; set; }
+        public List<OrderItem> Items { get; set; }
     }
 }

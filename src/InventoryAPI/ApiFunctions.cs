@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Linq;
 
 namespace InventoryAPI
 {
@@ -24,14 +25,21 @@ namespace InventoryAPI
             var body = await reader.ReadToEndAsync();
             var skus = JsonSerializer.Deserialize<IEnumerable<string>>(body);
 
-            bool hasClientErrors = false;
+            var errors = new List<ObjectResult>();
+            IActionResult result = new NoContentResult();
 
             foreach (var sku in skus)
             {
-                if (sku == "sku2")
+                if (sku == "sku2.1")
                 {
-                    log.LogWarning("Stock item {sku} not found", sku);
-                    hasClientErrors = true;
+                    log.LogWarning("Stock item {sku} is not eligible for reservations", sku);
+                    errors.Add(new BadRequestObjectResult($"Stock item {sku} is not eligible for reservations"));
+
+                }
+                else if (sku == "sku4")
+                {
+                    log.LogWarning("Stock item {sku} is not found", sku);
+                    errors.Add(new NotFoundObjectResult($"Stock item {sku} is not found"));
                 }
                 else
                 {
@@ -39,7 +47,24 @@ namespace InventoryAPI
                 }
             }
 
-            return hasClientErrors ? new NotFoundResult() : new NoContentResult();
+            return GenerateResponse(errors);
+        }
+
+        private IActionResult GenerateResponse(IEnumerable<ObjectResult> errors)
+        {
+            if (!errors.Any())
+            {
+                return new NoContentResult();
+            }
+            else if (errors.Count() == 1)
+            {
+                return errors.Single();
+            }
+            else
+            {
+                var errorObjects = errors.Select(error => error.Value);
+                return new BadRequestObjectResult(errorObjects);
+            }
         }
     }
 }
